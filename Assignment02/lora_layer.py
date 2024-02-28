@@ -66,7 +66,7 @@ class LoraLayer:
         # Moves the layer to the same device as the weight tensor
         self.to(self.weight.device)
 
-     # Method to update the parameters of the embedding layer with a new adapter
+    # Method to update the parameters of the embedding layer with a new adapter
     def update_layer_embedding(self, adapter_name, r, lora_alpha, lora_dropout, init_lora_weights):
         # Updates the rank and scaling factor for the adapter
         self.r[adapter_name] = r
@@ -262,10 +262,10 @@ class Linear(nn.Linear, LoraLayer):
             # flag to True.
             
             ### YOUR CODE HERE ###
-            self.weight.data += None
+            self.weight.data += self.lora_A @ self.lora_B.T
             
             ### YOUR CODE HERE ###
-            self.merged = None
+            self.merged = True
 
     def unmerge(self):
         # Separate low-rank approximation from original weights
@@ -302,6 +302,7 @@ class Linear(nn.Linear, LoraLayer):
             # LoRA scaling factor and added to the result.
             
             ### YOUR CODE HERE ###
+            
             result += None
         
         else:
