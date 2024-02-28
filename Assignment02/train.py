@@ -74,13 +74,13 @@ class Trainer:
         if mixed_precision_dtype is None:
             
             # If 'mixed_precision_dtype' is None, use 'nullcontext',
-            self.ctx = None
+            self.ctx = nullcontext()
 
         else:
         
             # TODO Otherwise, use 'torch.amp.autocast' context with the specified dtype, and initialize GradScaler if mixed_precision_dtype is float16.
-            self.ctx = None
-            self.gradscaler = None
+            self.ctx = torch.cuda.amp.autocast()
+            self.gradscaler = torch.cuda.amp.GradScaler()
 
     def _set_ddp_training(self):
 
@@ -90,7 +90,7 @@ class Trainer:
 
         ### YOUR CODE HERE ###
 
-        self.model = None
+        self.model = DDP(self.model, device_ids=[self.gpu_id])
 
     def _run_batch(self, batch):
         """
@@ -113,7 +113,7 @@ class Trainer:
 
             ### YOUR CODE HERE ###
             
-            pass
+            self.gradscaler.scale(loss).backward()
         else:
             loss.backward()
 
@@ -145,8 +145,7 @@ class Trainer:
         self.optimizer.zero_grad()  # Reset gradients at the beginning of each epoch
         for step, batch in enumerate(train_progress_bar):
             steps += 1
-            batch = {key: value.to(self.gpu_id)
-                     for key, value in batch.items()}
+            batch = {key: value.to(self.gpu_id) for key, value in batch.items()}
             loss = self._run_batch(batch)
             epoch_loss += loss
 
@@ -159,8 +158,10 @@ class Trainer:
                     ### YOUR CODE HERE ###
                     
                     # TODO: optimizer step
+                    self.gradscaler.step(self.optimizer)
 
                     # TODO: update scaler factor
+                    self.gradscaler.update()
 
                     pass
                 else:
@@ -168,8 +169,7 @@ class Trainer:
                 self.optimizer.zero_grad()
 
                 torch.cuda.empty_cache()
-        epoch_loss /= (len(train_dataloader) /
-                       self.gradient_accumulation_steps)
+        epoch_loss /= (len(train_dataloader) / self.gradient_accumulation_steps)
         return epoch_loss
 
     def _save_checkpoint(self, epoch):
@@ -198,7 +198,13 @@ class Trainer:
 
         ### YOUR CODE HERE ###
 
-        data_trainloader = None
+        data_trainloader = DataLoader(
+            train_dataset, 
+            batch_size=self.batch_size, 
+            sampler=DistributedSampler(), 
+            collate_fn=DataCollatorForSeq2Seq(tokenizer=tokenizer, pad_to_multiple_of=8, return_tensors="pt"),
+            drop_last=True
+        )
 
         # TODO: Prepare the evaluation DataLoader. Initialize 'DataLoader' with 'eval_dataset',
         # the appropriate 'batch_size', and 'SequentialSampler' for 'sampler'.
@@ -206,8 +212,13 @@ class Trainer:
         # Also add drop_last to True.
 
         ### YOUR CODE HERE ###
-
-        data_testloader = None
+        data_testloader = DataLoader(
+            eval_dataset, 
+            batch_size=self.batch_size, 
+            sampler=SequentialSampler(), 
+            collate_fn=DataCollatorForSeq2Seq(tokenizer=tokenizer, pad_to_multiple_of=8, return_tensors="pt"),
+            drop_last=True
+        )
 
         return data_trainloader, data_testloader
 
@@ -313,7 +324,7 @@ def load_pretrained_model(local_rank, model_path: str = ""):
 
     ### YOUR CODE HERE ###
 
-    model = None 
+    model = AutoModelForCausalLM.from_pretrained(model_path, device_map={"": torch.device(f"cuda:{local_rank}")})
 
     # TODO: Create a LoraConfig with the parameters: 
     # r=4, lora_alpha=8, lora_dropout=0.05, bias="none", task_type="CAUSAL_LM", target_modules=['lm_head.linear', 'transformer.embd.wte'].
@@ -321,11 +332,18 @@ def load_pretrained_model(local_rank, model_path: str = ""):
 
     ### YOUR CODE HERE ###
 
-    lora_config = None 
+    lora_config = LoraConfig(
+        r=4, 
+        lora_alpha=8, 
+        lora_dropout=0.05, 
+        bias=None, 
+        task_type="CAUSAL_LM", 
+        target_modules=['lm_head.linear', 'transformer.embd.wte']
+    ) 
 
     # TODO: Create LoRA model
 
-    model = None  # Apply current model to Lora Model
+    model = LoraModelForCasualLM(model, lora_config)  # Apply current model to Lora Model
 
     if _is_master_process():
         model.print_trainable_parameters()
@@ -368,8 +386,8 @@ if __name__ == "__main__":
         # Initialize the process group
 
         ### YOUR CODE HERE ###
-        
-        pass
+        init_process_group(backend)
+        local_rank = os.environ["LOCAL_RANK"]
     else:
         os.environ['RANK'] = '0'
         local_rank = 0
