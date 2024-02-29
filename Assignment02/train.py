@@ -205,7 +205,7 @@ class Trainer:
         data_trainloader = DataLoader(
             train_dataset, 
             batch_size=self.batch_size, 
-            sampler=None, 
+            sampler=sampler, 
             collate_fn=DataCollatorForSeq2Seq(tokenizer=tokenizer, pad_to_multiple_of=8, return_tensors="pt"),
             drop_last=True
         )
