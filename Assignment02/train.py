@@ -336,7 +336,7 @@ def load_pretrained_model(local_rank, model_path: str = ""):
         r=4, 
         lora_alpha=8, 
         lora_dropout=0.05, 
-        bias=None, 
+        bias="none", 
         task_type="CAUSAL_LM", 
         target_modules=['lm_head.linear', 'transformer.embd.wte']
     ) 
