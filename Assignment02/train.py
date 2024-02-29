@@ -78,7 +78,7 @@ class Trainer:
 
         else:
         
-            # TODO Otherwise, use 'torch.amp.autocast' context with the specified dtype, and initialize GradScaler if mixed_precision_dtype is float16.
+            # TODO: Otherwise, use 'torch.amp.autocast' context with the specified dtype, and initialize GradScaler if mixed_precision_dtype is float16.
             self.ctx = torch.cuda.amp.autocast()
             self.gradscaler = torch.cuda.amp.GradScaler()
 
@@ -197,11 +197,15 @@ class Trainer:
         # Also add drop_last to True.
 
         ### YOUR CODE HERE ###
+        if self.is_ddp_training:
+            sampler = DistributedSampler(train_dataset)
+        else:
+            sampler = "None"
 
         data_trainloader = DataLoader(
             train_dataset, 
             batch_size=self.batch_size, 
-            sampler=DistributedSampler(train_dataset), 
+            sampler=None, 
             collate_fn=DataCollatorForSeq2Seq(tokenizer=tokenizer, pad_to_multiple_of=8, return_tensors="pt"),
             drop_last=True
         )
