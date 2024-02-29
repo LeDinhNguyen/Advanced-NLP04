@@ -387,7 +387,7 @@ if __name__ == "__main__":
 
         ### YOUR CODE HERE ###
         init_process_group(backend)
-        local_rank = os.environ["LOCAL_RANK"]
+        local_rank = int(os.environ["LOCAL_RANK"])
     else:
         os.environ['RANK'] = '0'
         local_rank = 0
