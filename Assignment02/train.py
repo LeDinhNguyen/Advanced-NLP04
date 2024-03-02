@@ -200,7 +200,7 @@ class Trainer:
         if self.is_ddp_training:
             sampler = DistributedSampler(train_dataset)
         else:
-            sampler = "None"
+            sampler = None
 
         data_trainloader = DataLoader(
             train_dataset, 
