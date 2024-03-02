@@ -305,9 +305,8 @@ class Linear(nn.Linear, LoraLayer):
             lora_A_out = self.lora_A[self.active_adapter](x)
             lora_A_out = self.lora_dropout[self.active_adapter](lora_A_out)
             lora_B_out = self.lora_B[self.active_adapter](lora_A_out)
-            lora_out = self.scaling * lora_B_out
+            lora_out = self.scaling[self.active_adapter] * lora_B_out
             result += lora_out
-        
         else:
             result = F.linear(x, transpose(self.weight, self.fan_in_fan_out), bias=self.bias)
         
