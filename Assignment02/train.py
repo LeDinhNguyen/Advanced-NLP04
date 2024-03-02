@@ -197,6 +197,13 @@ class Trainer:
         # Also add drop_last to True.
 
         ### YOUR CODE HERE ###
+        collate_fn=DataCollatorForSeq2Seq(
+            tokenizer=self.tokenizer, 
+            pad_to_multiple_of=8, 
+            return_tensors="pt",
+            max_length=self.max_length
+        )
+
         if self.is_ddp_training:
             sampler = DistributedSampler(train_dataset)
         else:
@@ -205,8 +212,8 @@ class Trainer:
         data_trainloader = DataLoader(
             train_dataset, 
             batch_size=self.batch_size, 
-            sampler=sampler, 
-            collate_fn=DataCollatorForSeq2Seq(tokenizer=tokenizer, pad_to_multiple_of=8, return_tensors="pt"),
+            sampler=sampler,
+            collate_fn=collate_fn,
             drop_last=True
         )
 
@@ -220,7 +227,7 @@ class Trainer:
             eval_dataset, 
             batch_size=self.batch_size, 
             sampler=SequentialSampler(eval_dataset), 
-            collate_fn=DataCollatorForSeq2Seq(tokenizer=tokenizer, pad_to_multiple_of=8, return_tensors="pt"),
+            collate_fn=collate_fn,
             drop_last=True
         )
 
