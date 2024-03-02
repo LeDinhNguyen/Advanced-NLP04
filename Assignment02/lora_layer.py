@@ -303,7 +303,7 @@ class Linear(nn.Linear, LoraLayer):
             
             ### YOUR CODE HERE ###
             lora_A_out = self.lora_A[self.active_adapter](x)
-            lora_A_out = F.dropout(lora_A_out, p=self.lora_dropout)
+            lora_A_out = self.lora_dropout[self.active_adapter](lora_A_out)
             lora_B_out = self.lora_B[self.active_adapter](lora_A_out)
             lora_out = self.scaling * lora_B_out
             result += lora_out
